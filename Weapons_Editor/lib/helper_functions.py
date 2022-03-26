@@ -242,7 +242,7 @@ def get_value(val,dic):
         if key == val:
             return v
     if k == 0:
-        return 0
+        return "0"
 
 def get_num(val,dic):
     num = 0

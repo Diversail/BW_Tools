@@ -6,21 +6,14 @@
 #
 # WARNING! All changes made in this file will be lost!
 import traceback
-import itertools
 import gzip
-from copy import copy, deepcopy
 import os
 from os import path
-#from timeit import default_timer
-#from math import atan2, degrees, radians, sin, cos
 
-from PyQt5.QtCore import QSize, QRect, QMetaObject, QCoreApplication, QPoint
-from PyQt5.QtWidgets import (QWidget, QMainWindow, QFileDialog, QTabWidget,
+from PyQt5.QtCore import QSize, QRect, QMetaObject, QCoreApplication, QPoint,Qt
+from PyQt5.QtWidgets import (QWidget, QMainWindow, QFileDialog,
                              QSpacerItem, QLabel, QListWidget, QFormLayout,QPushButton, QSizePolicy, QVBoxLayout, QHBoxLayout,
                              QScrollArea, QDockWidget, QComboBox, QGridLayout, QMenuBar, QMenu, QAction, QApplication, QStatusBar, QLineEdit)
-from PyQt5.QtGui import QMouseEvent
-import PyQt5.QtWidgets as QtWidgets
-import PyQt5.QtCore as QtCore
 
 from lib.bw_read_xml import BattWarsLevel, BattWarsObject
 from lib.custom_widgets import (BWEntityEntry, BWEntityListWidget, flag_data2, flag_data1, target_data2, BWEntityXMLEditor,
@@ -369,8 +362,8 @@ class EditorMainWindow(QMainWindow):
     def action_change_bull_model(self):
         if self.setup == 0 and self.label_2.currentText() != "":
             seat = get_value(self.bull_model.currentText(),self.model_dict)
-            if seat != 0:
-                entity_set_val(self.level, self.bullet,"mModel",seat)
+            print('seating %s' % seat)
+            entity_set_val(self.level, self.bullet,"mModel",seat)
 
 
     def action_change_reload(self):
@@ -455,6 +448,7 @@ class EditorMainWindow(QMainWindow):
         if self.label_2.currentText() == "":
             print('No Weapon!')
         else:
+            self.setup = 1
             if len(self.seat_table) > 0:
                 val = self.label_2.currentIndex()
                 self.displaying.setItemText(0,self.seat_table[val])
@@ -535,6 +529,7 @@ class EditorMainWindow(QMainWindow):
                 matrix = [x for x in obj.get_attr_value("LaunchVec").split(",")]
                 self.vel.setText(matrix[2])
                 #entity_set_list(self.level, self.label_2.currentText(),"LaunchVec",self.vel.text(),2)
+            self.setup = 0
 
     def action_homing(self):
         if self.label_2.currentText() != "":
@@ -813,6 +808,7 @@ class EditorMainWindow(QMainWindow):
         else:
             pass # no level loaded, do nothing
     def clear_functions(self):
+        self.setup = 1
         self.displaying.setItemText(0,"")
         self.displaying.setCurrentIndex(0)
         self.accel.clear()
@@ -832,8 +828,11 @@ class EditorMainWindow(QMainWindow):
         self.bull_model.setItemText(0,"")
         self.bull_model.setCurrentIndex(0)
         self.pref_L.setItemText(0,"")
+        self.pref_L.setCurrentIndex(0)
         self.flags_L.setItemText(0,"")
+        self.flags_L.setCurrentIndex(0)
         self.bull_L.setItemText(0,"")
+        self.bull_L.setCurrentIndex(0)
         self.bull_dam.clear()
         self.bull_dam2.clear()
         self.bulllist = []
@@ -846,11 +845,12 @@ class EditorMainWindow(QMainWindow):
         self.turnspeed.setStyleSheet("border-width: 0px;")
         self.ttm.setStyleSheet("border-width: 0px;")
         self.bull_flag.setStyleSheet("border-width: 0px;")
+        self.setup = 0
         
         
     def set_entity_text(self, entityid):
         try:
-            #self.clear_functions()
+            self.clear_functions()
             self.obj_typing = 0
             seat = 0
             go_go = 0
@@ -1056,7 +1056,7 @@ class EditorMainWindow(QMainWindow):
         self.spacerItem2 = QSpacerItem(10, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         
         for label in (self.label_object_id, self.label_model_name,self.label_5):
-            label.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+            label.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
 
         self.test = QWidget(self.centralwidget)
