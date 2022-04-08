@@ -6,7 +6,7 @@ from copy import copy
 from math import sin, cos, atan2, radians
 from itertools import chain
 
-from PyQt5.QtGui import QMouseEvent, QWheelEvent, QPainter, QColor, QFont, QFontMetrics, QPolygon, QImage, QPixmap, QKeySequence
+from PyQt5.QtGui import QMouseEvent, QIcon,QWheelEvent, QPainter, QColor, QFont, QFontMetrics, QPolygon, QImage, QPixmap, QKeySequence
 from PyQt5.QtWidgets import (QWidget, QListWidget, QListWidgetItem, QDialog, QMenu,
                             QMdiSubWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QTextEdit, QAction, QShortcut)
 from PyQt5.QtCore import QSize, pyqtSignal, QPoint, QRect
@@ -748,6 +748,7 @@ class BWEntityXMLEditor(QMdiSubWindow):
         self.centralwidget = QWidget(self)
         self.setWidget(self.centralwidget)
         self.entity = None
+        self.setWindowIcon(QIcon("icon.ico"));
 
         font = QFont()
         font.setFamily("Consolas")

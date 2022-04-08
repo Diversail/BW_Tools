@@ -9,7 +9,7 @@ import traceback
 import gzip
 import os
 from os import path
-
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, QRect, QMetaObject, QCoreApplication, QPoint,Qt
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QFileDialog,
                              QSpacerItem, QLabel, QListWidget, QFormLayout,QPushButton, QSizePolicy, QVBoxLayout, QHBoxLayout,
@@ -276,12 +276,12 @@ class EditorMainWindow(QMainWindow):
 
             self.xmlobject_textbox.update()"""
     def action_open_weapons_editor(self):
-        if self.level is not None and self.current_entity is not None:
+        if self.level is not None and self.current_entity is not None and self.label_2.currentText() != "":
             entityobj = self.level.obj_map[self.label_2.currentText()]
             self.open_xml_editor(entityobj.id,100,100)
 
     def action_edit_bullet_xml(self):
-        if self.level is not None and self.current_entity is not None:
+        if self.level is not None and self.current_entity is not None and self.label_2.currentText() != "":
             entityobj = self.level.obj_map[self.bullet_l.text()]
             self.open_xml_editor(entityobj.id, 200,200)
     def action_change_alleg(self):
@@ -773,7 +773,7 @@ class EditorMainWindow(QMainWindow):
                         self.bull_model.addItems(self.model_dict.keys())
                         print("ok")
                         path_parts = path.split(filepath)
-                        self.setWindowTitle("BW-MapEdit - {0}".format(path_parts[-1]))
+                        self.setWindowTitle("BW_Weapons_Data _ {0}".format(path_parts[-1]))
                         self.setup = 0
 
                     except Exception as error:
@@ -924,8 +924,8 @@ class EditorMainWindow(QMainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(420, 760)
         MainWindow.setMinimumSize(QSize(720, 560))
-        MainWindow.setWindowTitle("BW-MapEdit")
-
+        MainWindow.setWindowTitle("BW_Weapons_Data")
+        MainWindow.setWindowIcon(QIcon("icon.ico"))
 
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
