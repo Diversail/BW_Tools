@@ -20,9 +20,9 @@ from lib.custom_widgets import (BWEntityEntry, BWEntityListWidget, flag_data2, f
                             catch_exception, soldier_display, Allegiance_List, test_data, test_data2, dam_list1, dam_list2, bullet_flags_o, bullet_flags2,target_data_o)
 
 
-from lib.helper_functions import (get_default_path, set_default_path, update_mapscreen,
-                                  entity_get_army, entity_set_val,entity_get_icon_type, entity_get_model,
-                                  object_get_seat,get_position_attribute,get_type,get_num,
+from lib.helper_functions import (get_default_path, set_default_path,
+                                  entity_set_val,entity_get_icon_type, entity_get_model,
+                                  get_position_attribute,get_type,
                                   get_key, get_value,entity_set_list,entity_set_list2)
 
 BW_LEVEL = "BW level files (*_level.xml *_level.xml.gz)"
@@ -51,6 +51,7 @@ class EditorMainWindow(QMainWindow):
         self.moving = False
 
         self.model_dict = {}
+        self.full_model_dict = {}
         self.game_type = 0
         self.timestamp = 0
         self.setup = 0
@@ -80,6 +81,7 @@ class EditorMainWindow(QMainWindow):
         self.bull_flag.editingFinished.connect(self.action_change_bull_flag)
         self.bull_L.currentIndexChanged.connect(self.action_change_bull_flag_box)
         self.bull_model.currentIndexChanged.connect(self.action_change_bull_model)
+        self.full_model.currentIndexChanged.connect(self.action_change_full_model)
         self.bull_dam.currentIndexChanged.connect(self.action_change_bull_dam)
         self.bull_dam2.editingFinished.connect(self.action_change_bull_dam2)
 
@@ -254,27 +256,11 @@ class EditorMainWindow(QMainWindow):
             traceback.print_exc()
 
     def action_open_xml_editor(self):
-        """
-        if not self.xmlobject_textbox.isVisible():
-            self.xmlobject_textbox.destroy()
-            self.xmlobject_textbox = BWEntityXMLEditor()
-            self.xmlobject_textbox.button_xml_savetext.pressed.connect(self.xmleditor_action_save_object_xml)
-            self.xmlobject_textbox.triggered.connect(self.action_open_xml_editor_unlimited)
-            self.xmlobject_textbox.show()
 
-        self.xmlobject_textbox.activateWindow()"""
         if self.level is not None and self.current_entity is not None:
             entityobj = self.level.obj_map[self.current_entity]
             self.open_xml_editor(objectid=entityobj.id)
 
-            #update_mapscreen(self.bw_map_screen, self.level.obj_map[entityobj.id])
-            #self.bw_map_screen.update()
-
-        """self.xmlobject_textbox.set_title(entityobj.id)
-
-            self.xmlobject_textbox.set_content(entityobj._xml_node)
-
-            self.xmlobject_textbox.update()"""
     def action_open_weapons_editor(self):
         if self.level is not None and self.current_entity is not None and self.label_2.currentText() != "":
             entityobj = self.level.obj_map[self.label_2.currentText()]
@@ -380,7 +366,7 @@ class EditorMainWindow(QMainWindow):
         entity_set_list(self.level, self.label_2.currentText(),"LaunchVec",self.vel.text(),2)
 
     def action_change_bull_dam(self):
-        if self.label_2.currentText() != "":
+        if self.label_2.currentText() != "" and self.setup == 0:
             obj = self.level.obj_map[self.label_2.currentText()]
             self.bullnum = self.bull_dam.currentIndex()
             self.dam_list.setCurrentIndex(0)
@@ -439,6 +425,29 @@ class EditorMainWindow(QMainWindow):
                     self.seat_table[val] = mod
                     self.displaying.setItemText(0,mod)
                     print('success!')
+
+    def action_change_full_model(self):
+        if self.setup == 0:
+            print('modeling')
+            mod = self.full_model.currentText()
+            print(mod)
+            if mod != "":
+                obj = self.level.obj_map[self.current_entity]
+                if obj.has_attr("mpModel"):
+                    seat = get_value(self.full_model.currentText(),self.full_model_dict)
+                    print('seating %s' % seat)
+                    entity_set_val(self.level, self.current_entity,"mpModel",seat)
+                    '''dumped = obj.get_attr_value("mpModel")
+                    seat = self.level.obj_map[dumped]
+                    if seat.has_attr("mName"):
+                        seat = get_value(self.full_model.currentText(),self.full_model_dict)
+                        print('seating %s' % seat)
+                        entity_set_val(self.level, dumped,"mName",seat)
+                        val = self.label_2.currentIndex()
+                        self.seat_table[val] = mod
+                        self.displaying.setItemText(0,mod)
+                        print('phhhew!')
+                        print('changed weapons model!')'''
 
     def action_open_table(self):
         if self.timestamp != os.path.getmtime(self.default_path):
@@ -629,8 +638,6 @@ class EditorMainWindow(QMainWindow):
                 self.level.remove_object(xmlnode.get("id"))
                 self.level.add_object(xmlnode)
 
-            update_mapscreen(self.bw_map_screen, self.level.obj_map[xmlnode.get("id")])
-
             self.statusbar.showMessage("Saved object {0} as {1}".format(
                 self.xmlobject_textbox.entity, self.level.obj_map[xmlnode.get("id")].name))
             self.bw_map_screen.update()
@@ -682,6 +689,7 @@ class EditorMainWindow(QMainWindow):
         global flag_data, bullet_flags, target_data
         Allegiance_List = []
         self.label_3.clear()
+        self.label_2.clear()
         self.bull_model.clear()
         self.label_3.addItem("")
         self.flags_L.clear()
@@ -742,6 +750,7 @@ class EditorMainWindow(QMainWindow):
                     file_open = open
                     self.game_type = 1
                 self.load_misc()
+                print('Loading Objects')
                 self.timestamp = os.path.getmtime(filepath)
                 with file_open(filepath, "rb") as f:
                     try:
@@ -756,6 +765,15 @@ class EditorMainWindow(QMainWindow):
                                     if seat != None and seat not in Allegiance_List:
                                         Allegiance_List.append(seat)
                                         self.label_3.addItem(seat)
+                                if obj.has_attr("mpModel"):
+                                    seat = format(obj.get_attr_value("mpModel"))
+                                    if seat != "0":
+                                        second = seat
+                                        seat = self.level.obj_map[seat]
+                                        if seat.has_attr("mName"):
+                                            main = seat.get_attr_value("mName")
+                                            if main not in self.full_model_dict:
+                                                self.full_model_dict[main] = second
                                 item = BWEntityEntry(obj_id, "{0}[{1}]".format(obj_id, obj.type))
                                 self.entity_list_widget.addItem(item)
                             if obj.return_type("cNodeHierarchyResource"):
@@ -764,17 +782,18 @@ class EditorMainWindow(QMainWindow):
                                 seat = obj.get_attr_value("mModel")
                                 if seat != "0":
                                     second = seat
-                                    seat = self.level.obj_map[obj.get_attr_value("mModel")]
+                                    seat = self.level.obj_map[seat]
                                     if seat.has_attr("mName"):
                                         main = seat.get_attr_value("mName")
                                         if main not in self.model_dict:
                                             self.model_dict[main] = second
                         self.bull_model.addItem("")
                         self.bull_model.addItems(self.model_dict.keys())
+                        #self.full_model.addItem("")
+                        self.full_model.addItems(self.full_model_dict.keys())
                         print("ok")
                         path_parts = path.split(filepath)
                         self.setWindowTitle("BW_Weapons_Data _ {0}".format(path_parts[-1]))
-                        self.setup = 0
 
                     except Exception as error:
                         print("error", error)
@@ -805,6 +824,7 @@ class EditorMainWindow(QMainWindow):
                     traceback.print_exc()
 
                 self.default_path = filepath
+                self.timestamp = os.path.getmtime(filepath)
         else:
             pass # no level loaded, do nothing
     def clear_functions(self):
@@ -858,6 +878,8 @@ class EditorMainWindow(QMainWindow):
             self.label_2.clear()
             self.health.clear()
             self.entity = entityid
+            self.full_model.setItemText(0,"")
+            self.full_model.setCurrentIndex(0)
             obj = self.level.obj_map[entityid]
             if obj.has_attr("mBase"):
                 base = self.level.obj_map[obj.get_attr_value("mBase")]
@@ -866,7 +888,7 @@ class EditorMainWindow(QMainWindow):
             else:
                 self.label_object_id.setText("{0}[{1}]".format(entityid, obj.type))
             self.label_model_name.setText("Model: {0}".format(entity_get_model(self.level, entityid)))
-            self.label_3.setItemText(0,format(entity_get_army(self.level, entityid)))
+            self.label_3.setItemText(0,format(obj.get_attr_value("mArmy")))
             self.label_3.setCurrentIndex(0)
             self.obj_typing = obj.type
             if not obj.has_attr("mPassenger"):
@@ -888,6 +910,20 @@ class EditorMainWindow(QMainWindow):
                     go_go = 1
             if obj.has_attr("mMaxHealth"):
                 self.health.setText(obj.get_attr_value("mMaxHealth"))
+
+            if obj.has_attr("mpModel"):
+                typ = obj.get_attr_value("mpModel")
+                if typ == "0":
+                    self.full_model.setCurrentIndex(0)
+                else:
+                    self.model = self.level.obj_map[typ]
+                    if self.model.has_attr("mName"):
+                        typ = self.model.get_attr_value("mName")
+                        f = self.full_model.findText(typ)
+                        if f == -1:
+                            self.full_model.setCurrentIndex(0)
+                        else:
+                            self.full_model.setCurrentIndex(f)
 
             if obj.has_attr("mUnitFlags"):
                 self.base_flags.setText(obj.get_attr_value("mUnitFlags"))
@@ -916,6 +952,7 @@ class EditorMainWindow(QMainWindow):
 
     def action_listwidget_change_selection(self, current, previous):
         if not self.resetting and current is not None:
+            self.setup = 1
             print("hi", current.text(), current.xml_ref)
             self.current_entity = current.xml_ref
             self.set_entity_text(current.xml_ref)
@@ -1118,6 +1155,10 @@ class EditorMainWindow(QMainWindow):
         for i in soldier_display:
             self.displaying.addItem(i)
 
+        self.full_model = QComboBox(self.centralwidget)
+        self.full_model.setObjectName("full_model")
+        self.full_model.addItem("")
+
         self.button_edit_xml = QPushButton(self.centralwidget)
         self.button_edit_xml.setObjectName("button_edit_xml")
         self.button_edit_xml.setText("Edit Object XML")
@@ -1140,6 +1181,7 @@ class EditorMainWindow(QMainWindow):
         self.gridLayout.addRow(self.label_2)
         self.gridLayout.addRow(self.label_3)
         self.gridLayout.addRow(self.displaying)
+        self.gridLayout.addRow(self.full_model)
         self.gridLayout.addRow(self.button_edit_xml)
         self.gridLayout.addRow(self.button_edit_base_xml)
         self.gridLayout.addRow(self.button_edit_bullet_xml)
