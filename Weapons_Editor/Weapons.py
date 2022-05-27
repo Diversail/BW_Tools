@@ -27,6 +27,17 @@ from lib.helper_functions import (get_default_path, set_default_path,
 
 BW_LEVEL = "BW level files (*_level.xml *_level.xml.gz)"
 BW_COMPRESSED_LEVEL = "BW compressed level files (*_level.xml.gz)"
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+Logo = resource_path("icon.ico")
 
 class EditorMainWindow(QMainWindow):
     def __init__(self):
@@ -777,7 +788,8 @@ class EditorMainWindow(QMainWindow):
                                 item = BWEntityEntry(obj_id, "{0}[{1}]".format(obj_id, obj.type))
                                 self.entity_list_widget.addItem(item)
                             if obj.return_type("cNodeHierarchyResource"):
-                                print(obj.get_attr_value("mName"))
+                                #print(obj.get_attr_value("mName"))
+                                pass
                             if obj.return_type("sProjectileBase"):
                                 seat = obj.get_attr_value("mModel")
                                 if seat != "0":
@@ -789,7 +801,6 @@ class EditorMainWindow(QMainWindow):
                                             self.model_dict[main] = second
                         self.bull_model.addItem("")
                         self.bull_model.addItems(self.model_dict.keys())
-                        #self.full_model.addItem("")
                         self.full_model.addItems(self.full_model_dict.keys())
                         print("ok")
                         path_parts = path.split(filepath)
@@ -962,7 +973,7 @@ class EditorMainWindow(QMainWindow):
         MainWindow.resize(420, 760)
         MainWindow.setMinimumSize(QSize(720, 560))
         MainWindow.setWindowTitle("BW_Weapons_Data")
-        MainWindow.setWindowIcon(QIcon("icon.ico"))
+        MainWindow.setWindowIcon(QIcon(Logo))
 
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -977,71 +988,90 @@ class EditorMainWindow(QMainWindow):
         
         self.bullet_l = QLineEdit(self.centralwidget)
         self.bullet_l.setObjectName("Bullet")
+        self.bullet_l.setToolTip("Just the ID for the bullet")
         self.bullet_l.setPlaceholderText("None")
 
         self.flags_l = QLineEdit(self.centralwidget)
         self.flags_l.setObjectName("Flag")
+        self.flags_l.setToolTip("This is the general flags of the weapon, not the bullet flags\nnot sure exactly the purpose it serves yet")
         self.flags_l.setPlaceholderText("None")
 
         self.pref_l = QLineEdit(self.centralwidget)
         self.pref_l.setObjectName("Pref")
+        self.pref_l.setToolTip("The target type that the weapons will prefer\nthis is used to determine what homing weapons will target")
         self.pref_l.setPlaceholderText("None")
 
         self.ammo_l = QLineEdit(self.centralwidget)
         self.ammo_l.setObjectName("Ammo")
+        self.ammo_l.setToolTip("number of cartridges in the weapon")
         self.ammo_l.setPlaceholderText("None")
 
         self.range = QLineEdit(self.centralwidget)
         self.range.setObjectName("range")
+        self.range.setToolTip("The range at which a unit can be targeted (?)")
         self.range.setPlaceholderText("None")
 
         self.reload = QLineEdit(self.centralwidget)
         self.reload.setObjectName("reload")
+        self.reload.setToolTip("Plainly obvious")
         self.reload.setPlaceholderText("None")
 
         self.vel = QLineEdit(self.centralwidget)
         self.vel.setObjectName("vel")
+        self.vel.setToolTip("The starting speed of the bullet")
         self.vel.setPlaceholderText("None")
         
         self.bull_flag = QLineEdit(self.centralwidget)
         self.bull_flag.setObjectName("bull")
+        self.bull_flag.setToolTip("This affects how the bullet travels\ngunship missiles, bombs,bullets\nthis value is also necessary for homing")
         self.bull_flag.setPlaceholderText("None")
 
         self.bull_model = QComboBox(self.centralwidget)
         self.bull_model.setObjectName("bull_model")
+        self.bull_flag.setToolTip("The model of the projectile")
         #self.bull_model.setPlaceholderText("None")
 
         self.bull_dam = QComboBox(self.centralwidget)
         self.bull_dam.setObjectName("bull_dam")
+        self.bull_dam.setToolTip("What type of damage is dealt (can have up to four types)")
         self.bull_dam.addItem("")
 
         self.base_flags = QLineEdit(self.centralwidget)
         self.base_flags.setObjectName("base_flags")
+        self.base_flags.setToolTip("Base Flags of the Unit")
         self.base_flags.setPlaceholderText("None")
 
         self.bull_dam2 = QLineEdit(self.centralwidget)
         self.bull_dam2.setObjectName("bull_dam2")
+        self.bull_dam2.setToolTip("How much damage is dealt by the weapon IN the DAMAGE category")
         self.bull_dam2.setPlaceholderText("None")
 
         self.dam_list = QComboBox(self.centralwidget)
         self.dam_list.setObjectName("dam_list")
+        self.dam_list.setToolTip("Changes the type of DAMAGE")
         self.dam_list.addItem("")
 
 
         self.pref_L = QComboBox(self.centralwidget)
         self.pref_L.setObjectName("pref_L")
+        self.pref_L.setToolTip("The target type that the weapons will prefer\nthis is used to determine what homing weapons will target\n(2) refers to BW2")
+
 
         self.flags_L = QComboBox(self.centralwidget)
         self.flags_L.setObjectName("flags_L")
+        self.flags_L.setToolTip("This is the general flags of the weapon, not the bullet flags\nnot sure exactly the purpose it serves yet")
+
 
         self.flags_L.addItem("")
 
         self.bull_L = QComboBox(self.centralwidget)
         self.bull_L.setObjectName("bull_L")
+        self.bull_L.setToolTip("This affects how the bullet travels\ngunship missiles, bombs, bullets\nThis value is also necessary for homing")
         self.bull_L.addItem("")
 
         self.label_2 = QComboBox(self.centralwidget)
         self.label_2.setObjectName("label_2")
+        self.label_2.setToolTip("The list of weapons of the unit\nFor infrantry the 2nd one is the player weapon")
 
         self.label_5 = QLabel(self.centralwidget)
         self.label_5.setObjectName("label_5")
@@ -1049,6 +1079,7 @@ class EditorMainWindow(QMainWindow):
 
         self.health = QLineEdit(self.centralwidget)
         self.health.setObjectName("health")
+        self.health.setToolTip("Health of the Unit")
         self.health.setPlaceholderText("None")
 
         self.label_object_id = QLabel(self.centralwidget)
@@ -1064,26 +1095,32 @@ class EditorMainWindow(QMainWindow):
 
         self.accel = QLineEdit(self.centralwidget)
         self.accel.setObjectName("accel")
+        self.accel.setToolTip("How fast the projectile accerlerates")
         self.accel.setPlaceholderText("None")
 
         self.drag = QLineEdit(self.centralwidget)
         self.drag.setObjectName("drag")
+        self.drag.setToolTip("Inertia of the object\nresistance to acceleration")
         self.drag.setPlaceholderText("None")
 
         self.turnspeed = QLineEdit(self.centralwidget)
         self.turnspeed.setObjectName("turnspeed")
+        self.turnspeed.setToolTip("How fast the homing projectile can change direction")
         self.turnspeed.setPlaceholderText("None")
 
         self.ttm = QLineEdit(self.centralwidget)
         self.ttm.setObjectName("ttm")
+        self.ttm.setToolTip("The time until the homing\nprojectile starts turning")
         self.ttm.setPlaceholderText("None")
 
         self.lifetime = QLineEdit(self.centralwidget)
         self.lifetime.setObjectName("lifetime")
+        self.lifetime.setToolTip("How long the projectile will last before vanishing")
         self.lifetime.setPlaceholderText("None")
 
         self.bounce = QLineEdit(self.centralwidget)
         self.bounce.setObjectName("bounce")
+        self.bounce.setToolTip("Not sure yet")
         self.bounce.setPlaceholderText("None")
 
         self.help = QLabel(self.centralwidget)
@@ -1144,19 +1181,22 @@ class EditorMainWindow(QMainWindow):
         self.verticalLayout.setObjectName("verticalLayout")
 
         self.label_3 = QComboBox(self.centralwidget)
-        self.label_3.setObjectName("label_3")
+        self.label_3.setObjectName("Allegiance")
+        self.label_3.setToolTip("The faction the unit belongs to")
         self.label_3.addItem("")
         for i in range(0, len(Allegiance_List)):
             self.label_3.addItem(Allegiance_List[i])
 
         self.displaying = QComboBox(self.centralwidget)
         self.displaying.setObjectName("displaying")
+        self.displaying.setToolTip("(For vehicles) how the grunt will be seen,\nstanding, sitting, etc")
         self.displaying.addItem("")
         for i in soldier_display:
             self.displaying.addItem(i)
 
         self.full_model = QComboBox(self.centralwidget)
         self.full_model.setObjectName("full_model")
+        self.full_model.setToolTip("The model of the unit")
         self.full_model.addItem("")
 
         self.button_edit_xml = QPushButton(self.centralwidget)
@@ -1207,6 +1247,7 @@ class EditorMainWindow(QMainWindow):
         self.entity_list_widget = BWEntityListWidget(self.centralwidget)
         self.entity_list_widget.setMaximumSize(QSize(200, 16777215))
         self.entity_list_widget.setObjectName("entity_list_widget")
+        self.entity_list_widget.setToolTip("The list of all entities with weapons/seat data")
         self.horizontalLayout.addWidget(self.entity_list_widget)
 
         self.menubar = QMenuBar(MainWindow)
