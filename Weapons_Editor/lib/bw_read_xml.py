@@ -172,6 +172,19 @@ class BattWarsLevel(object):
         self._root.remove(obj._xml_node)
         del self.obj_map[objectid]
 
+    def save_object(self, objectid,new_object):
+        obj = self.obj_map[objectid]
+        pos = obj.pos
+        #deletion
+        self._root.remove(obj._xml_node)
+        del self.obj_map[objectid]
+        #addition
+        bwobj = BattWarsObject(new_object)
+        assert bwobj.id not in self.obj_map
+        self._root.insert(pos,new_object)
+        self.obj_map[bwobj.id] = bwobj
+        bwobj.pos = pos
+
     def add_comment(self):
         number = etree.Comment("Waiting")
         self._root.insert(0,number)

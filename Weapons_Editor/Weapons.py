@@ -11,12 +11,12 @@ import os
 from os import path
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize, QRect, QMetaObject, QCoreApplication, QPoint,Qt
-from PyQt5.QtWidgets import (QWidget, QMainWindow, QFileDialog,
+from PyQt5.QtWidgets import (QWidget, QMainWindow, QFileDialog, QStackedLayout,QDialog,
                              QSpacerItem, QLabel, QListWidget, QFormLayout,QPushButton, QSizePolicy, QVBoxLayout, QHBoxLayout,
                              QScrollArea, QDockWidget, QComboBox, QGridLayout, QMenuBar, QMenu, QAction, QApplication, QStatusBar, QLineEdit)
 
 from lib.bw_read_xml import BattWarsLevel, BattWarsObject
-from lib.custom_widgets import (BWEntityEntry, BWEntityListWidget, flag_data2, flag_data1, target_data2, BWEntityXMLEditor,
+from custom_widgets import (BWEntityEntry, BWEntityListWidget, display_string,flag_data2, flag_data1, target_data2, BWEntityXMLEditor,
                             catch_exception, soldier_display, Allegiance_List, test_data, test_data2, dam_list1, dam_list2, bullet_flags_o, bullet_flags2,target_data_o)
 
 
@@ -62,6 +62,7 @@ class EditorMainWindow(QMainWindow):
         self.moving = False
 
         self.model_dict = {}
+        self.back_dict = {}
         self.full_model_dict = {}
         self.game_type = 0
         self.timestamp = 0
@@ -76,6 +77,7 @@ class EditorMainWindow(QMainWindow):
         self.flags = 0
         self.pref = 0
         self.ammo = 0
+        self.table_val = 0
         self.obj_typing = 0
         self.seat_table = []
 
@@ -92,6 +94,7 @@ class EditorMainWindow(QMainWindow):
         self.bull_flag.editingFinished.connect(self.action_change_bull_flag)
         self.bull_L.currentIndexChanged.connect(self.action_change_bull_flag_box)
         self.bull_model.currentIndexChanged.connect(self.action_change_bull_model)
+        self.backpack.currentIndexChanged.connect(self.action_change_backpack)
         self.full_model.currentIndexChanged.connect(self.action_change_full_model)
         self.bull_dam.currentIndexChanged.connect(self.action_change_bull_dam)
         self.bull_dam2.editingFinished.connect(self.action_change_bull_dam2)
@@ -136,6 +139,13 @@ class EditorMainWindow(QMainWindow):
         self.xml_windows = {}
         print("We are now ready!")
 
+
+    def button_unit_action(self):
+        if self.stackedLayout.currentIndex() == 0:
+            self.stackedLayout.setCurrentIndex(1)
+        else:
+            self.stackedLayout.setCurrentIndex(0)
+        
     def reset(self):
         self.resetting = True
         self.statusbar.clearMessage()
@@ -194,9 +204,9 @@ class EditorMainWindow(QMainWindow):
                         xmlnode = xml_window.get_content()
                         #assert self.bw_map_screen.current_entity == self.basexmlobject_textbox.entity
                         assert xml_window.entity == xmlnode.get("id")  # Disallow changing the id of the base object
-
-                        self.level.remove_object(xmlnode.get("id"))
-                        self.level.add_object(xmlnode)
+                        self.level.save_object(xmlnode.get("id"),xmlnode)
+                        #self.level.remove_object(xmlnode.get("id"))
+                        #self.level.add_object(xmlnode)
 
                         self.statusbar.showMessage("Saved base object {0} as {1}".format(
                             xml_window.entity, self.level.obj_map[xmlnode.get("id")].name))
@@ -251,6 +261,7 @@ class EditorMainWindow(QMainWindow):
                 self.open_xml_editor(baseobj.id)
 
     def xmleditor_action_save_base_object_xml(self):
+        print('savvvvvvvyvyyyyyyyyyyywerwerwerwe')
         self.statusbar.showMessage("Saving base object changes...")
         try:
             xmlnode = self.basexmlobject_textbox.get_content()
@@ -362,6 +373,11 @@ class EditorMainWindow(QMainWindow):
             print('seating %s' % seat)
             entity_set_val(self.level, self.bullet,"mModel",seat)
 
+    def action_change_backpack(self):
+        if self.setup == 0 and self.label_2.currentText() != "":
+            seat = get_value(self.backpack.currentText(),self.back_dict)
+            entity_set_val(self.level, self.entity,"mBkPackModel",seat)
+
 
     def action_change_reload(self):
         entity_set_val(self.level, self.label_2.currentText(),"ReloadTime",self.reload.text())
@@ -402,15 +418,12 @@ class EditorMainWindow(QMainWindow):
 
     def action_ttm(self):
         entity_set_val(self.level, self.bullet,"mTimeToMaxTurnSpeed",self.ttm.text())
-        #self.help.setText("Time to max turning speed")
 
     def action_lifetime(self):
         entity_set_val(self.level, self.bullet,"mMaxLifeTime",self.lifetime.text())
-        #self.help.setText("Bullet lifetime is useful for homing projec\ntiles")
 
     def action_bounce(self):
         entity_set_val(self.level, self.bullet,"mBounceFactor",self.bounce.text())
-        #self.help.setText("Bounce Factor is normally .6666")
 
     def action_dam_list(self):
         if self.setup == 0:
@@ -463,60 +476,65 @@ class EditorMainWindow(QMainWindow):
     def action_open_table(self):
         if self.timestamp != os.path.getmtime(self.default_path):
             print('EEEEEEEEECCCK!!!!!!!')
-            self.help.setText("The Level File has been modified!\n(Probably by Notepad++)")
+            dlg = QDialog(self)
+            dlg.setWindowTitle('Info') 
+            dlg.exec()
         self.clear_functions()
         if self.label_2.currentText() == "":
             print('No Weapon!')
         else:
-            self.setup = 1
-            if len(self.seat_table) > 0:
-                val = self.label_2.currentIndex()
-                self.displaying.setItemText(0,self.seat_table[val])
-            obj = self.level.obj_map[self.label_2.currentText()]
-            if obj.return_type("cAdvancedWeaponBase"):
-                self.indicator.setText("Advanced_Weapons_Base")
-            if obj.has_attr("BulletType"):
-                self.bullet = format(obj.get_attr_value("BulletType"))
-                self.bullet_l.setText(self.bullet)
-                seat = self.level.obj_map[self.bullet]
-                if seat.has_attr("mObjFlags"):
-                    self.bull_flag.setText(seat.get_attr_value("mObjFlags"))
-                    nexts = bullet_flags.get(self.bull_flag.text(), None)
-                    if nexts != None:
-                        self.bull_L.setCurrentIndex(0)
-                        self.bull_L.setItemText(0,format(nexts))
-                if seat.has_attr("mModel"):
-                    typ = seat.get_attr_value("mModel")
-                    if typ == "0":
-                        self.bull_model.setCurrentIndex(0)
-                    else:
-                        self.model = self.level.obj_map[typ]
-                        if self.model.has_attr("mName"):
-                            typ = self.model.get_attr_value("mName")
-                            f = self.bull_model.findText(typ)
-                            if f == -1:
-                                self.bull_model.setCurrentIndex(0)
-                            else:
-                                self.bull_model.setCurrentIndex(f)
-                if seat.has_attr("mAccel"):
-                    self.accel.setText(seat.get_attr_value("mAccel"))
-                if seat.has_attr("mDrag"):
-                    self.drag.setText(seat.get_attr_value("mDrag"))
-                if seat.has_attr("mTurnSpeed"):
-                    self.turnspeed.setText(seat.get_attr_value("mTurnSpeed"))
-                if seat.has_attr("mTimeToMaxTurnSpeed"):
-                    self.ttm.setText(seat.get_attr_value("mTimeToMaxTurnSpeed"))
-                if seat.has_attr("mMaxLifeTime"):
-                    self.lifetime.setText(seat.get_attr_value("mMaxLifeTime"))
-                if seat.has_attr("mBounceFactor"):
-                    self.bounce.setText(seat.get_attr_value("mBounceFactor"))
-                if seat.has_attr("mDamageAmount"):
-                    self.bulllist = seat.get_attr_elements("mDamageAmount")
-                    self.bull_dam2.setText(self.bulllist[self.bullnum])
-                if seat.has_attr("mDamageType"):
-                    self.bulllist2 = seat.get_attr_elements("mDamageType")
-                    for i in self.bulllist2:
-                        self.bull_dam.addItem(i)
+            try:
+                self.setup = 1
+                if len(self.seat_table) > 0:
+                    val = self.label_2.currentIndex()
+                    self.displaying.setItemText(0,self.seat_table[val])
+                obj = self.level.obj_map[self.label_2.currentText()]
+                if obj.return_type("cAdvancedWeaponBase"):
+                    self.indicator.setText("Advanced_Weapons_Base")
+                if obj.has_attr("BulletType"):
+                    self.bullet = format(obj.get_attr_value("BulletType"))
+                    self.bullet_l.setText(self.bullet)
+                    seat = self.level.obj_map[self.bullet]
+                    if seat.has_attr("mObjFlags"):
+                        self.bull_flag.setText(seat.get_attr_value("mObjFlags"))
+                        nexts = bullet_flags.get(self.bull_flag.text(), None)
+                        if nexts != None:
+                            self.bull_L.setCurrentIndex(0)
+                            self.bull_L.setItemText(0,format(nexts))
+                    if seat.has_attr("mModel"):
+                        typ = seat.get_attr_value("mModel")
+                        if typ == "0":
+                            self.bull_model.setCurrentIndex(0)
+                        else:
+                            self.model = self.level.obj_map[typ]
+                            if self.model.has_attr("mName"):
+                                typ = self.model.get_attr_value("mName")
+                                f = self.bull_model.findText(typ)
+                                if f == -1:
+                                    self.bull_model.setCurrentIndex(0)
+                                else:
+                                    self.bull_model.setCurrentIndex(f)
+                    if seat.has_attr("mAccel"):
+                        self.accel.setText(seat.get_attr_value("mAccel"))
+                    if seat.has_attr("mDrag"):
+                        self.drag.setText(seat.get_attr_value("mDrag"))
+                    if seat.has_attr("mTurnSpeed"):
+                        self.turnspeed.setText(seat.get_attr_value("mTurnSpeed"))
+                    if seat.has_attr("mTimeToMaxTurnSpeed"):
+                        self.ttm.setText(seat.get_attr_value("mTimeToMaxTurnSpeed"))
+                    if seat.has_attr("mMaxLifeTime"):
+                        self.lifetime.setText(seat.get_attr_value("mMaxLifeTime"))
+                    if seat.has_attr("mBounceFactor"):
+                        self.bounce.setText(seat.get_attr_value("mBounceFactor"))
+                    if seat.has_attr("mDamageAmount"):
+                        self.bulllist = seat.get_attr_elements("mDamageAmount")
+                        self.bull_dam2.setText(self.bulllist[self.bullnum])
+                    if seat.has_attr("mDamageType"):
+                        self.bulllist2 = seat.get_attr_elements("mDamageType")
+                        for i in self.bulllist2:
+                            self.bull_dam.addItem(i)
+            except:
+                print('Error in code')
             if obj.has_attr("Flags"):
                 self.flags = format(obj.get_attr_value("Flags"))
                 self.flags_l.setText(self.flags)
@@ -531,6 +549,18 @@ class EditorMainWindow(QMainWindow):
                     seat2 = test_data.get(self.flags_l.text(), None)
                     if seat2 == None:
                         test_data.update({self.flags: self.label_5.text()+self.label_3.currentText()})
+            if obj.has_attr("mBkPackModel"):
+                seat = format(obj.get_attr_value("mBkPackModel"))
+                self.backpack.setCurrentIndex(0)
+                if seat == 0:
+                    print('no backpack')
+                else:
+                    flag_data.update({self.flags: self.label_5.text()+self.label_3.currentText()})
+                    self.flags_L.addItem(flag_data[self.flags])
+                    self.flags_L.setItemText(0,format(self.label_5.text()))
+                    seat2 = self.back_dict.get(str(self.backpack.currentText()), None)
+                    if seat2 == None:
+                        self.backpack.setCurrentIndex(seat2)
             if obj.has_attr("PreferredTargetType"):
                 self.pref = format(obj.get_attr_value("PreferredTargetType"))
                 self.pref_l.setText(self.pref)
@@ -623,6 +653,8 @@ class EditorMainWindow(QMainWindow):
 
     def xmleditor_action_save_object_xml(self):
         self.statusbar.showMessage("Saving object changes...")
+        print('WOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
+        input()
         try:
             xmlnode = self.xmlobject_textbox.get_content()
             #assert self.bw_map_screen.current_entity == self.xmlobject_textbox.entity
@@ -646,6 +678,7 @@ class EditorMainWindow(QMainWindow):
                 self.xmlobject_textbox.set_title(xmlnode.get("id"))
 
             else:
+                print('savvvvvving')
                 self.level.remove_object(xmlnode.get("id"))
                 self.level.add_object(xmlnode)
 
@@ -702,6 +735,7 @@ class EditorMainWindow(QMainWindow):
         self.label_3.clear()
         self.label_2.clear()
         self.bull_model.clear()
+        self.backpack.clear()
         self.label_3.addItem("")
         self.flags_L.clear()
         self.dam_list.clear()
@@ -785,6 +819,22 @@ class EditorMainWindow(QMainWindow):
                                             main = seat.get_attr_value("mName")
                                             if main not in self.full_model_dict:
                                                 self.full_model_dict[main] = second
+                                if obj.has_attr("mBkPackModel"):
+                                    seat = format(obj.get_attr_value("mBkPackModel"))
+                                    if seat != "0":
+                                        second = seat
+                                        seat = self.level.obj_map[seat]
+                                        if seat.has_attr("mName"):
+                                            main = seat.get_attr_value("mName")
+                                            if main not in self.back_dict:
+                                                self.back_dict[main] = second
+                                if obj.has_attr("mDisplayNameStringID"):
+                                    seat = format(obj.get_attr_value("mDisplayNameStringID"))
+                                    if seat != "0":
+                                        second = get_value(seat,display_string)
+                                        if second == "0":
+                                            print(seat)
+                                            print('New item!!!!!!!!!!!!!!!')
                                 item = BWEntityEntry(obj_id, "{0}[{1}]".format(obj_id, obj.type))
                                 self.entity_list_widget.addItem(item)
                             if obj.return_type("cNodeHierarchyResource"):
@@ -793,15 +843,19 @@ class EditorMainWindow(QMainWindow):
                             if obj.return_type("sProjectileBase"):
                                 seat = obj.get_attr_value("mModel")
                                 if seat != "0":
-                                    second = seat
-                                    seat = self.level.obj_map[seat]
-                                    if seat.has_attr("mName"):
-                                        main = seat.get_attr_value("mName")
-                                        if main not in self.model_dict:
-                                            self.model_dict[main] = second
+                                    try:
+                                        second = seat
+                                        seat = self.level.obj_map[seat]
+                                        if seat.has_attr("mName"):
+                                            main = seat.get_attr_value("mName")
+                                            if main not in self.model_dict:
+                                                self.model_dict[main] = second
+                                    except:
+                                        print('Error loading model data')
                         self.bull_model.addItem("")
                         self.bull_model.addItems(self.model_dict.keys())
                         self.full_model.addItems(self.full_model_dict.keys())
+                        self.backpack.addItems(self.back_dict.keys())
                         print("ok")
                         path_parts = path.split(filepath)
                         self.setWindowTitle("BW_Weapons_Data _ {0}".format(path_parts[-1]))
@@ -891,6 +945,8 @@ class EditorMainWindow(QMainWindow):
             self.entity = entityid
             self.full_model.setItemText(0,"")
             self.full_model.setCurrentIndex(0)
+            self.backpack.setItemText(0,"")
+            self.backpack.setCurrentIndex(0)
             obj = self.level.obj_map[entityid]
             if obj.has_attr("mBase"):
                 base = self.level.obj_map[obj.get_attr_value("mBase")]
@@ -899,6 +955,12 @@ class EditorMainWindow(QMainWindow):
             else:
                 self.label_object_id.setText("{0}[{1}]".format(entityid, obj.type))
             self.label_model_name.setText("Model: {0}".format(entity_get_model(self.level, entityid)))
+            seat = obj.get_attr_value("mDisplayNameStringID")
+            seat = display_string.get(seat, seat)
+            self.string_name.setText("String: {0}".format(seat))
+            #seat = obj.get_attr_value("mDisplayFullNameStringID")
+            #seat = display_string.get(seat, seat)
+            #self.string_name2.setText("String: {0}".format(seat))
             self.label_3.setItemText(0,format(obj.get_attr_value("mArmy")))
             self.label_3.setCurrentIndex(0)
             self.obj_typing = obj.type
@@ -935,6 +997,20 @@ class EditorMainWindow(QMainWindow):
                             self.full_model.setCurrentIndex(0)
                         else:
                             self.full_model.setCurrentIndex(f)
+
+            if obj.has_attr("mBkPackModel"):
+                typ = obj.get_attr_value("mBkPackModel")
+                if typ == "0":
+                    self.backpack.setCurrentIndex(0)
+                else:
+                    self.back_mod = self.level.obj_map[typ]
+                    if self.back_mod.has_attr("mName"):
+                        typ = self.back_mod.get_attr_value("mName")
+                        f = self.backpack.findText(typ)
+                        if f == -1:
+                            self.backpack.setCurrentIndex(0)
+                        else:
+                            self.backpack.setCurrentIndex(f)
 
             if obj.has_attr("mUnitFlags"):
                 self.base_flags.setText(obj.get_attr_value("mUnitFlags"))
@@ -979,8 +1055,46 @@ class EditorMainWindow(QMainWindow):
         self.centralwidget.setObjectName("centralwidget")
         MainWindow.setCentralWidget(self.centralwidget)
 
+        '''self.acentralwidget = QWidget(MainWindow)
+        self.acentralwidget.setObjectName("acentralwidget")
+        MainWindow.setCentralWidget(self.acentralwidget)'''
+
+        self.test = QWidget(self.centralwidget)
+        self.test.setMaximumSize(QSize(250, 1200))
+        self.testlay = QVBoxLayout(self.test)
+        self.testlay.setObjectName("testlay")
+
+        # Create the stacked layout
+        self.stackedLayout = QStackedLayout(self.centralwidget)
+        # Create the first page
+        self.page1 = QWidget()
+        self.page1Layout = QFormLayout()
+        self.page1Layout.addRow("Name:", QLineEdit())
+        self.page1Layout.addRow("Address:", QLineEdit())
+        self.page1.setLayout(self.page1Layout)
+
+        self.backpack = QComboBox(self.centralwidget)
+        self.backpack.setObjectName("bull_dam")
+        self.backpack.setToolTip("The infrantry's backpack")
+
+        self.pg2hor = QHBoxLayout(self.centralwidget)
+        self.pg2hor.setObjectName("pg2h")
+        self.pg2horz = QWidget()
+        self.pg2horz.setLayout(self.pg2hor)
+        self.pg2hor.addWidget(self.page1)
+        self.pg2hor.addWidget(self.backpack)
+        # Add the combo box and the stacked layout to the top-level layout
+
         self.horizontalLayout = QHBoxLayout(self.centralwidget)
         self.horizontalLayout.setObjectName("horizontalLayout")
+
+        self.horz_test = QWidget()
+        self.horz_test.setLayout(self.horizontalLayout)
+        self.stackedLayout.addWidget(self.horz_test)
+        self.stackedLayout.addWidget(self.pg2horz)
+
+        #self.horizontalLayout.addLayout(self.stackedLayout) # two layers, centralwidget and acentralwidget
+        #self.stackedLayout.addWidget(self.acentralwidget)
 
         self.indicator = QLabel(self.centralwidget)
         self.indicator.setObjectName("indicator")
@@ -1090,6 +1204,14 @@ class EditorMainWindow(QMainWindow):
         self.label_model_name.setObjectName("label_model_name")
         self.label_model_name.setText("Model")
 
+        self.string_name = QLabel(self.centralwidget)
+        self.string_name.setObjectName("string_name")
+        self.string_name.setText("String")
+
+        self.string_name2 = QLabel(self.centralwidget)
+        self.string_name2.setObjectName("string_name2")
+        self.string_name2.setText("String2")
+
         self.dud = QLabel(self.centralwidget)
         self.dud.setObjectName("dud")
 
@@ -1123,24 +1245,21 @@ class EditorMainWindow(QMainWindow):
         self.bounce.setToolTip("Not sure yet")
         self.bounce.setPlaceholderText("None")
 
-        self.help = QLabel(self.centralwidget)
-        self.help.setObjectName("help")
 
         self.spacerItem1 = QSpacerItem(10, 160, QSizePolicy.Expanding,   QSizePolicy.Minimum)
         self.spacerItem2 = QSpacerItem(10, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         
-        for label in (self.label_object_id, self.label_model_name,self.label_5):
+        for label in (self.label_object_id, self.label_model_name,self.string_name,self.string_name2,self.label_5):
             label.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
 
-        self.test = QWidget(self.centralwidget)
-        self.test.setMaximumSize(QSize(250, 1200))
-        self.testlay = QVBoxLayout(self.test)
-        self.testlay.setObjectName("testlay")
+        #self.test = QWidget(self.centralwidget) way up there
+        #self.test.setMaximumSize(QSize(250, 1200))
+        #self.testlay = QVBoxLayout(self.test)
+        #self.testlay.setObjectName("testlay")
         self.testlay.addItem(self.spacerItem1)
         self.testlay.addWidget(self.bull_L)
         self.testlay.addWidget(self.dam_list)
-        self.testlay.addWidget(self.help)
 
         self.tab1 = QWidget(self.centralwidget)
         self.tab2 = QWidget(self.centralwidget)
@@ -1231,6 +1350,8 @@ class EditorMainWindow(QMainWindow):
         self.gridLayout.addRow(self.label_object_id)
         self.gridLayout.addRow(self.label_model_name)
         self.gridLayout.addRow(self.label_5)
+        self.gridLayout.addRow(self.string_name)
+        self.gridLayout.addRow(self.string_name2)
 
 
         self.verticalLayout.addLayout(self.gridLayout)
@@ -1258,12 +1379,16 @@ class EditorMainWindow(QMainWindow):
 
 
 
+
         self.file_load_action = QAction("Load", self)
         self.file_load_action.triggered.connect(self.button_load_level)
         self.file_menu.addAction(self.file_load_action)
         self.file_save_action = QAction("Save", self)
         self.file_save_action.triggered.connect(self.button_save_level)
         self.file_menu.addAction(self.file_save_action)
+        self.file_unit_action = QAction("Alternate_Tables", self)
+        self.file_unit_action.triggered.connect(self.button_unit_action)
+        self.file_menu.addAction(self.file_unit_action)
 
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
