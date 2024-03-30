@@ -5,18 +5,6 @@ from math import radians, atan2, degrees, sin, cos, sqrt
 
 from PyQt5.QtGui import QPicture, QPainter, QImage, QColor, QPixmap
 
-MODEL_ATTR = {
-    "sAirVehicleBase": "model",
-    "cBuildingImpBase": "mpModel",
-    "cCapturePointBase": "mpModel",
-    "cObjectiveMarkerBase": "mModel",
-    "sDestroyBase": "Model",
-    "sTroopBase": "mBAN_Model",
-    "cGroundVehicleBase": "mpModel",
-    "sPickupBase": "mModel",
-    }
-
-
 zoomvalues = [(0, 0.2), (1, 0.3), (1.6, 0.6), (3.4, 0.8), (5.0, 1.0)]
 def calc_zoom_in_factor(current):
     zoom = 0.2
@@ -74,21 +62,6 @@ def update_mapscreen(mapscreen, obj):
 
         mapscreen.set_metadata(obj.id,
                                {"angle": rotation, "angle2": rotation2})
-def get_position_attribute(obj):
-    if obj.has_attr("Mat"):
-        return "Mat"
-    if obj.type == "cMapZone":
-        return "mMatrix"
-
-    return None
-
-def get_weapons_attribute(obj, val):
-    if obj.has_attr(val):
-        return val
-    #if obj.type == "cMapZone":
-    #     return "mMatrix"
-
-    return None
 
 def bw_coords_to_image_coords(bw_x, bw_y):
     img_x = ((bw_x + (4096//2)) // 2)
@@ -112,29 +85,41 @@ for ix in range(0, 2048+1, 1024):
         print(ix, iy, x, y, bw_coords_to_image_coords(x, y))
 """
 
+        
+MODEL_ATTR = {
+    "sAirVehicleBase": "model",
+    "cBuildingImpBase": "mpModel",
+    "cCapturePointBase": "mpModel",
+    "cObjectiveMarkerBase": "mModel",
+    "sDestroyBase": "Model",
+    "sTroopBase": "mBAN_Model",
+    "cGroundVehicleBase": "mpModel",
+    "sPickupBase": "mModel",
+    }
 
+def get_position_attribute(obj):
+    if obj.has_attr("Mat"):
+        return "Mat"
+    if obj.type == "cMapZone":
+        return "mMatrix"
 
-def entity_get_model(xml, entityid):
+    return None
+
+def get_weapons_attribute(obj, val):
+    if obj.has_attr(val):
+        return val
+
+    return None
+
+def entity_get_model(xml, entityid,baseid="1"): #change weapons to use this value
     try:
         entityobj = xml.obj_map[entityid]
-        #baseobj = xml.obj_map[entityobj.get_attr_value("mBase")]
-        #modelobj = xml.obj_map[baseobj.get_attr_value(
-        #    MODEL_ATTR[baseobj.type]
-        #)]
-        modelobj = xml.obj_map[entityobj.get_attr_value(MODEL_ATTR[entityobj.type])]
+        baseobj = xml.obj_map[entityobj.get_attr_value("mBase")]
+        modelobj = xml.obj_map[baseobj.get_attr_value(
+            MODEL_ATTR[baseobj.type]
+        )]
 
         return modelobj.get_attr_value("mName")
-    except:
-        #traceback.print_exc()
-        return None
-
-
-def entity_get_army(xml, entityid):
-    try:
-        entityobj = xml.obj_map[entityid]
-        #baseobj = xml.obj_map[entityobj.get_attr_value("mBase")]
-
-        return entityobj.get_attr_value("mArmy")
     except:
         #traceback.print_exc()
         return None
@@ -180,20 +165,32 @@ def entity_set_list2(xml, entityid, to_fix, to_fix2, to_fix3):
         print("nope")
         return None
 
-def entity_get_icon_type(xml, entityid,value = 0):
-    entityobj = xml.obj_map[entityid]
+
+def entity_get_icon_type(xml, entityid,value = 0): #change weapons system.
     try:
-        done = entityobj.get_attr_value("unitIcon")
-        #entityobj = xml.obj_map[entityid.get_attr_value("unitIcon")]
-        #baseobj = xml.obj_map[entityobj.get_attr_value("mBase")]
-        if done == "eNoUnitIconSet" and value == 2:
-            done = entityobj.get_attr_value("mUnitSubType")
-        print(done)
+        entityobj = xml.obj_map[entityid]
+        if value == 0:
+            objectbase = xml.obj_map[entityobj.get_attr_value("mBase")]
+            done = objectbase.get_attr_value("unitIcon")
+        else:
+            objectbase = entityobj
+            done = entityobj.get_attr_value("unitIcon")
+        if done == "eNoUnitIconSet" and value != 1:
+            done = objectbase.get_attr_value("mUnitSubType")
         return done
     except:
         #traceback.print_exc()
         return None
+    
+def entity_get_army(xml, entityid):
+    try:
+        entityobj = xml.obj_map[entityid]
+        baseobj = xml.obj_map[entityobj.get_attr_value("mBase")]
 
+        return baseobj.get_attr_value("mArmy")
+    except:
+        #traceback.print_exc()
+        return None
 
 def set_default_path(path):
     print("WRITING", path)
@@ -216,17 +213,6 @@ def get_default_path():
         return None
 
 
-def object_get_position(xml, entityid):
-    obj = xml.obj_map[entityid]
-    matrix_name = get_position_attribute(obj)
-
-    matr4x4 = [float(x) for x in obj.get_attr_value(matrix_name).split(",")]
-    angle = degrees(atan2(matr4x4[8], matr4x4[10]))
-
-    x, y = matr4x4[12], matr4x4[14]
-
-    return x, y, angle
-
 def get_key(val,dic):
     k = 0
     for key,v in dic.items():
@@ -244,18 +230,17 @@ def get_value(val,dic):
     if k == 0:
         return "0"
 
-def get_num(val,dic):
-    num = 0
-    for key,v in dic.items():
-        if key == val:
-            return num
-        num += 1
-
-def object_get_seat(xml, entityid):
+def object_get_position(xml, entityid):
     obj = xml.obj_map[entityid]
-    matrix_name = obj.get_attr_elements("mSeatData")
+    matrix_name = get_position_attribute(obj)
 
-    return matrix_name
+    matr4x4 = [float(x) for x in obj.get_attr_value(matrix_name).split(",")]
+    angle = degrees(atan2(matr4x4[8], matr4x4[10]))
+
+    x, y = matr4x4[12], matr4x4[14]
+
+    return x, y, angle
+
 
 def object_set_position(xml, entityid, x, y, angle=None):
     obj = xml.obj_map[entityid]
@@ -334,9 +319,7 @@ for coltrans in [
             COLORS.append(color)
             #colors.extend([make_gradient(start, end))
 
-
-
-def parse_terrain_to_image(terrainfile, waterheight=None):
+def parse_bruce(terrainfile,waterheight=None):
     # In BWii the entry at position 1 is not KNHC, but something else that needs to be skipped
     if terrainfile.entries[1].name != b"KNHC":
         off = 1
@@ -377,14 +360,122 @@ def parse_terrain_to_image(terrainfile, waterheight=None):
     light_p.begin(light_pic)
     biggestheight = 0
     lowest = 0xFFFF
-    print(len(tiles.data)/(180*16))
+    #print(len(tiles.data)/(180*16))
+    heights = []
+    watercolor = (106, 152, 242)
+
+    lowest_values = {}
+    total_lowest_color = None
+    SCALE = 24
+
+    for x in range(64):
+        for y in range(64):
+            a, b, offset = struct.unpack(">BBH", tilemap.data[(y*64+x)*4:(y*64+x+1)*4])
+            #print(a,b,offset)
+            if b == 1:
+                tiles_data = tiles.data[180*16*offset:180*16*(offset+1)]
+                lowest = 0xFFFF
+                lowest_color = None
+                for ix in range(4):
+                    for iy in range(4):
+                        coord_offset = iy*4+ix
+                        single_tile = tiles_data[180*(coord_offset):180*(coord_offset+1)]
+                        if len(single_tile) == 0:
+                            print("Ooops:", offset)
+                        for iix in range(4):
+                            for iiy in range(4):
+                                point_offset = iiy*4 + iix
+                                #print("do stuff", (y*64+x)*4)
+                                height = struct.unpack(">H", single_tile[point_offset*2:(point_offset+1)*2])[0]
+                                
+                                light_r, light_g, light_b, unused = struct.unpack("BBBB", single_tile[32+point_offset*4:32+(point_offset+1)*4])
+                                pen = p.pen()
+                                r = g = b = height//SCALE
+
+                                pen.setColor(QColor(r, g, b))
+                                p.setPen(pen)
+                                p.drawPoint(x*16+ix*4+iix, y*16+iy*4+iiy)
+                                pen.setColor(QColor(light_r, light_g, light_b))
+                                light_p.setPen(pen)
+                                light_p.drawPoint(x*16+ix*4+iix, y*16+iy*4+iiy)
+
+                lowest_values[(x, y)] = lowest_color
+    p.end()
+    light_p.end()
+
+
+    #print(pic.size().height(), pic.size().width())
+    #print(biggestheight, hex(biggestheight))
+    #print(lowest, hex(lowest))
+    heights.sort()
+    #print(heights)
+
+    finalimage = QImage(pic.width(), pic.height(), QImage.Format_ARGB32)
+    p.begin(finalimage)
+
+
+    p.drawImage(0, 0, pic)
+    p.end()
+    """p.begin(self.terrainview)
+    p.drawImage(0, 0, pic)
+    p.end()"""
+
+    return finalimage.mirrored(False, True), light_pic.mirrored(False, True)#pic.mirrored(False, True)
+
+
+
+def parse_terrain_to_image(terrainfile, waterheight=None):
+    # In BWii the entry at position 1 is not KNHC, but something else that needs to be skipped
+    if terrainfile.entries[1].name != b"KNHC":
+        off = 1
+    else:
+        off = 0
+    SCALE = 24
+    tiles = terrainfile.entries[1+off] # KNHC
+    #tiles2 = terrainfile.entries[4+off] # TWCU
+    tilemap = terrainfile.entries[3+off] # PAMC
+    #tilemapdata = bytes(tilemap.data)
+    pic = QImage(64*4*4, 64*4*4, QImage.Format_ARGB32)
+    pic_flat = QImage(64*4*4, 64*4*4, QImage.Format_ARGB32)
+    light_pic = QImage(64*4*4, 64*4*4, QImage.Format_ARGB32)
+
+    #colortransition = QImage(os.path.join("lib", "colors_terrainview.png"), "PNG")
+    #colors = []
+
+    #for i in range(colortransition.width()):
+    #    colors.append(colortransition.pixel(i, 0))
+
+    """new = QImage(len(colors), 200, QImage.Format_ARGB32)
+    trans_painter = QPainter()
+    trans_painter.begin(new)
+    for i in range(len(colors)):
+        r, g, b = colors[i]
+        pen = trans_painter.pen()
+        pen.setColor(QColor(r, g, b))
+        trans_painter.setPen(pen)
+        for y in range(200):
+            trans_painter.drawPoint(i, y)
+
+    trans_painter.end()
+    result = new.save("transition.png", "PNG")
+    print("saved", result)"""
+    #pic = QPixmap(64*4*4, 64*4*4)
+    p = QPainter()
+    p.begin(pic)
+    p_flat = QPainter()
+    p_flat.begin(pic_flat)
+    light_p = QPainter()
+    light_p.begin(light_pic)
+    biggestheight = 0
+    lowest = 0xFFFF
+    #print(len(tiles.data)/(180*16))
     heights = []
     watercolor = (106, 152, 242)
 
     lowest_values = {}
     total_lowest_color = None
     outofbounds_count = 0
-
+    pen = p.pen()
     for x in range(64):
         for y in range(64):
             a, b, offset = struct.unpack(">BBH", tilemap.data[(y*64+x)*4:(y*64+x+1)*4])
@@ -408,7 +499,6 @@ def parse_terrain_to_image(terrainfile, waterheight=None):
                                 light_r, light_g, light_b, unused = struct.unpack("BBBB", single_tile[32+point_offset*4:32+(point_offset+1)*4])
                                 #blend_r, blend_g, blend_b, wat = struct.unpack("BBBB",
                                 #                                                     single_tile[4+32+64+point_offset*4:4+32+64+(point_offset+1)*4])
-                                pen = p.pen()
                                 """if height > biggestheight:
                                     biggestheight = height
                                 if height < lowest:
@@ -430,7 +520,7 @@ def parse_terrain_to_image(terrainfile, waterheight=None):
 
                                 if height >= len(COLORS):
 
-                                    #print("oops, color out of bounds:", height, len(COLORS))
+                                    print("oops, color out of bounds:", height, len(COLORS))
                                     outofbounds_count += 1
                                     height = len(COLORS)-1
 
@@ -453,24 +543,34 @@ def parse_terrain_to_image(terrainfile, waterheight=None):
                                 #pen.setColor(QColor(height>>8, height&0xFF, height&0xFF))
                                 p.setPen(pen)
                                 p.drawPoint(x*16+ix*4+iix, y*16+iy*4+iiy)
+                                r = g = b = height//SCALE
+                                pen.setColor(QColor(r, g, b))
+                                p_flat.setPen(pen)
+                                p_flat.drawPoint(x*16+ix*4+iix, y*16+iy*4+iiy)
                                 pen.setColor(QColor(light_r, light_g, light_b))
                                 light_p.setPen(pen)
                                 light_p.drawPoint(x*16+ix*4+iix, y*16+iy*4+iiy)
 
                 lowest_values[(x,y)] = lowest_color
     p.end()
+    p_flat.end()
     light_p.end()
 
 
-    print(pic.size().height(), pic.size().width())
-    print(biggestheight, hex(biggestheight))
-    print(lowest, hex(lowest))
+    #print(pic.size().height(), pic.size().width())
+    #print(biggestheight, hex(biggestheight))
+    #print(lowest, hex(lowest))
     heights.sort()
-    print(heights)
+    #print(heights)
     if outofbounds_count > 0:
         print("{0} points out of bounds".format(outofbounds_count))
 
     finalimage = QImage(pic.width(), pic.height(), QImage.Format_ARGB32)
+    flat_image = QImage(pic_flat.width(), pic_flat.height(), QImage.Format_ARGB32)
+    #print(type(finalimage))
+    finalimage.save("messy.png")
+    #file = open("messy.png","w")
+    #file
     p.begin(finalimage)
 
     #common_lowest_values =
@@ -516,8 +616,21 @@ def parse_terrain_to_image(terrainfile, waterheight=None):
         p.fillRect(0, 0, 64*64*4, 64*64*4, QColor(total_lowest_color[0], total_lowest_color[1], total_lowest_color[2]))
     p.drawImage(0, 0, pic)
     p.end()
+    p_flat.begin(flat_image)
+    p_flat.drawImage(0, 0, pic_flat)
+    p_flat.end()
     """p.begin(self.terrainview)
     p.drawImage(0, 0, pic)
     p.end()"""
+    trueish = finalimage.mirrored(False,True)
+    trueish.save("messed.png")
+    trueish = flat_image.mirrored(False,True)
+    trueish.save("messe2d.png")
+    #print(type(pic))
+    #print(type(p_flat))
+    #print(type(finalimage))
+    #print(type(flat_image))
+    #print('done')
 
-    return finalimage.mirrored(False, True), light_pic.mirrored(False, True)#pic.mirrored(False, True)
+    return finalimage.mirrored(False, True), light_pic.mirrored(False, True), flat_image.mirrored(False, True)#pic.mirrored(False, True)
+

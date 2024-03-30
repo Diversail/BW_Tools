@@ -261,7 +261,6 @@ class EditorMainWindow(QMainWindow):
                 self.open_xml_editor(baseobj.id)
 
     def xmleditor_action_save_base_object_xml(self):
-        print('savvvvvvvyvyyyyyyyyyyywerwerwerwe')
         self.statusbar.showMessage("Saving base object changes...")
         try:
             xmlnode = self.basexmlobject_textbox.get_content()
@@ -965,7 +964,10 @@ class EditorMainWindow(QMainWindow):
             self.label_3.setCurrentIndex(0)
             self.obj_typing = obj.type
             if not obj.has_attr("mPassenger"):
-                self.label_5.setText(format(entity_get_icon_type(self.level, entityid,self.game_type)))
+                print('ENTRANCE')
+                test = entity_get_icon_type(self.level, entityid,self.game_type)
+                print(test)
+                self.label_5.setText(format(test))
             if obj.has_attr("mWeaponLoads"):
                 go_go = 0
                 seat = obj.get_attr_value("mWeaponLoads")
@@ -1077,7 +1079,7 @@ class EditorMainWindow(QMainWindow):
         self.backpack.setObjectName("bull_dam")
         self.backpack.setToolTip("The infrantry's backpack")
 
-        self.pg2hor = QHBoxLayout(self.centralwidget)
+        self.pg2hor = QHBoxLayout()
         self.pg2hor.setObjectName("pg2h")
         self.pg2horz = QWidget()
         self.pg2horz.setLayout(self.pg2hor)
